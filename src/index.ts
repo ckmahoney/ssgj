@@ -31,9 +31,9 @@ init()
 function init() {
   const canvas = document.querySelector("canvas") as HTMLCanvasElement
   const engine = new Engine(canvas)
-  const scene = createGardenScene(engine);
-  const sphere = createSphere(scene)
-  engine.runRenderLoop( () => render(scene, sphere) )
+  const environment = createGardenScene(engine);
+  const sphere = createSphere(environment.scene)
+  engine.runRenderLoop( () => render({sphere, ...environment}) )
 }
 
 
@@ -45,8 +45,6 @@ function createCamera(name, position, scene): FreeCamera {
   camera.attachControl(canvas, true)
   return camera
 }
-
-
 
 
 /** Creates a sphere within a `scene` */
@@ -76,7 +74,7 @@ function createGardenScene(engine) {
 
   // @ts-ignore
   console.log('created ground', window.ground = ground)
-  return scene
+  return {scene, light, camera, skybox, ground}
 }
 
 
@@ -95,7 +93,6 @@ function createGround(scene: Scene, name: string = 'grass.jpg'): Mesh {
   const grass = new TEXTURES.Texture(`textures/${name}`, scene)
   material.diffuseTexture = grass
   material.reflectionTexture = grass
-
 
   // material.diffuseColor = new Color3(1, 0, 1)
   // material.specularColor = new Color3(0.5, 0.6, 0.87)
@@ -121,10 +118,11 @@ function createSkybox(scene, name = 'skybox'): Mesh {
 }
 
 
-function render(scene: Scene, sphere: Mesh) {
+function render(environment: any) {
+    const { scene, light, camera, skybox, ground, sphere } = environment;
     const listen = e => {
       // window.removeEventListener( 'keydown', listen )
-      handleKeydown( e.code, sphere )
+      handleKeydown( e.code, [sphere, camera] )
     }
 
     window.removeEventListener( 'keydown', listen )
@@ -133,30 +131,44 @@ function render(scene: Scene, sphere: Mesh) {
 }
 
 
-function handleKeydown(code: string, sphere: Mesh) {
+function handleKeydown(code: String, meshes: Mesh[]) {
+  const newRelativePosition = 
+    { x: 0
+    , y: 0
+    , z: 0}
+
   switch( code ) {
     case 'KeyD' :
-      sphere.position.x = sphere.position.x + 0.1
+      newRelativePosition.x += 0.1
       break
 
     case 'KeyA' :
-      sphere.position.x = sphere.position.x - 0.1
-      break
-
-    case 'KeyW' :
-      sphere.position.y = sphere.position.y + 0.1
-      break
-
-    case 'KeyS' :
-      sphere.position.y = sphere.position.y - 0.1
+      newRelativePosition.x -= 0.1
       break
 
     case 'KeyQ' :
-      sphere.position.z = sphere.position.z + 0.1
+      newRelativePosition.y += 0.1
       break
 
     case 'KeyE' :
-      sphere.position.z = sphere.position.z - 0.1
+      newRelativePosition.y -= 0.1
       break
-    } 
+
+    case 'KeyW' :
+      newRelativePosition.z += 0.1
+      break
+
+    case 'KeyS' :
+      newRelativePosition.z -= 0.1
+      break
+    default :
+  }
+  
+  const update = mesh => {
+    for ( let axis in newRelativePosition ) 
+      mesh.position[axis] += newRelativePosition[axis]
+  }
+
+  meshes.forEach( update )
 }
+
