@@ -27,65 +27,65 @@ import "@babylonjs/core/Meshes/Builders/boxBuilder";
 const GROUND_SIZE = 600;
 const GROUND_DEPTH = 2;
 
-// Get the canvas element from the DOM.
-const canvas = document.getElementById("renderCanvas") as HTMLCanvasElement;
+init();
 
 
-const engine = new Engine(canvas);
-var scene = new Scene(engine);
+function init() {
+  const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+  const engine = new Engine(canvas);
+  const scene = setupEnvironment( new Scene(engine) );
 
-const camera = createCamera("camera1", new Vector3(0, 5, -10), scene);
+
+  const sphere = createSphere(scene);
+  engine.runRenderLoop( () => render(scene, sphere) );
+}
+
 
 function createCamera(name, position, scene): FreeCamera {
-  var camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
+  const canvas = document.querySelector("canvas") as HTMLCanvasElement;
+  const camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene);
   camera.setTarget(Vector3.Zero());
-  camera.attachControl(canvas, true); // This attaches the camera to the canvas
+  camera.attachControl(canvas, true);
   return camera;
 }
 
-// This creates a light, aiming 0,1,0 - to the sky (non-mesh)
-var light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
 
-// Default intensity is 1. Let's dim the light a small amount
-light.intensity = 0.7;
-
-// Create a grid material
-var material = new GridMaterial("grid", scene);
-
-const greenCloth = new StandardMaterial("greenCloth", scene);
-
-greenCloth.diffuseColor = new Color3( 1, 0, 1 );
-greenCloth.specularColor = new Color3( 1, 0, 1 );
-greenCloth.emissiveColor = new Color3( 1, 0, 1 );
-greenCloth.ambientColor = new Color3( 1, 0, 1 );
-
-// Our built-in 'sphere' shape. Params: name, subdivs, size, scene
-var sphere = Mesh.CreateSphere("sphere1", 16, 4, scene);
-
-// Move the sphere upward 1/2 its height
-sphere.position.y = 2;
-
-// Affect a material
-sphere.material = greenCloth;
-
-// Our built-in 'ground' shape. Params: name, width, depth, subdivs, scene
-var ground = Mesh.CreateGround("ground1", GROUND_SIZE, GROUND_SIZE, GROUND_DEPTH, scene);
+function setupEnvironment(scene: Scene): Scene {
+  const light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene);
+  const camera = createCamera("camera1", new Vector3(0, 5, -10), scene);
+  const skybox = createSkybox(scene, 'skybox');
+  return scene;
+}
 
 
-const skybox = createSkybox(scene, 'skybox');
+function createSphere(scene: Scene): Mesh {
+  const greenCloth = new StandardMaterial("greenCloth", scene);
+  const sphere = MeshBuilder.CreateSphere("sphere1", {segments: 16, diameter: 4}, scene);
+
+  sphere.position.y = 2;
+
+  greenCloth.diffuseColor = new Color3( 0, 0, 1 );
+  greenCloth.specularColor = new Color3( 0, 0, 1 );
+  greenCloth.emissiveColor = new Color3( 1, 0, 1 );
+  greenCloth.ambientColor = new Color3( 1, 0, 1 );
+
+  sphere.material = greenCloth;
+  return sphere;
+}
 
 
+function createGround( scene ) {
+  // const material = new GridMaterial("grid", scene);
+  const ground = MeshBuilder.CreateGround("ground1", {width: GROUND_SIZE, height: GROUND_SIZE, subdivisions: GROUND_DEPTH}, scene);
+  const material = new StandardMaterial('ground', scene);
+  material.diffuseColor = new Color3(1, 0, 1);
+  material.specularColor = new Color3(0.5, 0.6, 0.87);
+  material.emissiveColor = new Color3(1, 1, 1);
+  material.ambientColor = new Color3(0.23, 0.98, 0.53);
+}
 
-// Affect a material
-ground.material = material;
 
-
-const framerate = 1000 / 60;
-
-
-
-
-function createSkybox( scene, name = 'skybox' ) {
+function createSkybox( scene, name = 'skybox' ): Mesh {
   const skybox = MeshBuilder.CreateBox(name, {size:1000.0}, scene);
   const material = new StandardMaterial(name, scene);
 
@@ -99,19 +99,21 @@ function createSkybox( scene, name = 'skybox' ) {
   return skybox;
 }
 
-engine.runRenderLoop( renderSphere );
 
+function render( scene: Scene, sphere: Mesh ) {
+    const listen = e => {
+      window.removeEventListener( 'keydown', listen );
+      handleKeydown( e.code, sphere );
+    }
 
-
-function renderSphere() {
-    window.removeEventListener( 'keydown', handleKeydown );
-    window.addEventListener( 'keydown', handleKeydown );
+    // window.removeEventListener( 'keydown', listen );
+    window.addEventListener( 'keydown', listen );
     scene.render();
 }
 
-function handleKeydown( event ) {
-  console.log('handleKeydown');
-  switch( event.code ) {
+
+function handleKeydown( code: string, sphere: Mesh ) {
+  switch( code ) {
     case 'KeyD' :
       sphere.position.x = sphere.position.x + 0.1;
       break;
