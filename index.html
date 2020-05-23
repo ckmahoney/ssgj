@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html xmlns="http://www.w3.org/1999/xhtml">
 
 <head>
@@ -16,16 +17,39 @@
             overflow: hidden;
         }
 
+
         #renderCanvas {
             width: 100%;
             height: 100%;
             display: block;
             font-size: 0;
         }
+
+
+        #instructions {
+            padding: 2.5%;
+            line-height: 24px;
+            position: absolute;
+            top: 5%;
+            left: 5%;
+            width: 20vw;
+            min-height: 15vw;
+            border: 1px solid orange;
+            background: rgba(0,0,0,.8);
+            color: white;
+            font-size: 18px;
+            font-family: sans-serif;
+            z-index: 10;
+        }
     </style>
 </head>
 
 <body>
+    <div id="instructions">
+        <span><b>Forward / Back</b><pre>  W  S </pre>
+        <span><b>Left / Right</b><pre>  A / D </pre>
+        <span><b>Up / Down</b><pre>  Q / E </pre>
+    </div>
     <canvas id="renderCanvas" touch-action="none"></canvas>
 
     <script src="main.js"></script>
