@@ -3,5 +3,9 @@
         "module": "esNext",
         "target": "es5",
         "moduleResolution": "node",
-    }
+    },
+    "types": [
+      "babylonjs",
+      "babylonjs-gui"
+    ]
 }
