@@ -38,14 +38,13 @@ function init() {
   const engine = new Engine(canvas)
   const environment = createGardenScene(engine);
 
-  const meshes = (
+  const meshes =
     [ 'bird'
     , 'coconut-tree'
     , 'grass'
     , 'island-palmtree'
     , 'plant' 
-    , 'soil' ] 
-    )//.map( model => `${model}.babylon` )
+    , 'soil' ]
 
   const manager = new AssetsManager(environment.scene)
   manager.onProgress = function(remainingCount, totalCount, lastFinishedTask) {
@@ -69,7 +68,7 @@ function init() {
   });
 
   meshes.map( ( model ) =>  
-    manager.addMeshTask( `${model} model`, '', 'models/', model ) )
+    manager.addMeshTask( `${model} model`, '', 'models/', `${model}.babylon` ) )
 
   manager.load()
 }
