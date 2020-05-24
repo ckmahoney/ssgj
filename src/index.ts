@@ -31,7 +31,7 @@ const VECTOR_ORIGIN = Vector3.Zero()
 
 let engine
 // @ts-ignore
-const GROUND_SIZE = Number.parseFloat(600)
+const GROUND_SIZE = Number.parseFloat(200)
 // @ts-ignore
 const GROUND_DEPTH = Number.parseFloat(2)
 const models =
@@ -40,7 +40,8 @@ const models =
   , 'grass'
   , 'island-palmtree'
   , 'plant' 
-  , 'soil' ]
+  , 'soil'
+  , 'water' ]
 
 init()
     // @ts-ignore
@@ -90,13 +91,25 @@ function init() {
 
 function applyListners(scene: Scene) {
   scene.onPointerDown = function castRay() {
+    console.log("Csting ray")
     const camera = scene.cameras[0]
     var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), camera)  
     var hit = scene.pickWithRay(ray)
+    console.log("hit.pickedMesh.metadata", hit.pickedMesh.metadata)
 
-    if (hit.pickedMesh && hit.pickedMesh.metadata == "cannon") {
-        createGUIButton()
-    }
+    respondToHit( hit )
+    
+  }
+}
+
+
+function respondToHit( hit ) {
+  if ( !hit.pickedMesh ) {
+    return;
+  }
+
+  if (hit.pickedMesh.metadata == "soil") {
+      createGUIButton()
   }
 }
 
@@ -213,6 +226,7 @@ function createSkybox(scene, name = 'skybox'): Mesh {
   return skybox
 }
 
+
 function setup(mesh: Mesh) {
   mesh.checkCollisions = true
   mesh.visibility = 0
@@ -223,7 +237,6 @@ function setup(mesh: Mesh) {
   const scaleDown = new Vector3(0.125, 0.125, 0.125)
 
   const SPAWN_CLEAR_RADIUS = 15
-
   const createInstances = ( mesh, qty, x, y, z ) => {
     for ( let i = 0; i < qty; i++ ) {
       let clone = mesh.createInstance(name + i)
@@ -245,11 +258,29 @@ function setup(mesh: Mesh) {
       mesh.position = new Vector3(0, 0.01,0)
       mesh.scaling = unit.scale( 1 / 120 )
       mesh.visibility = 1
-      for ( let j = 0; j < 10; j++ ) {
+      for ( let j = 0; j < 10; j++ ) 
         createInstances( mesh, 100, i => j * i * rand(), () => 0, i => rand() * j * i)
-      }
       break
 
+
+    case 'water' :
+      mesh.position = unit
+      mesh.visibility = 1
+      const numWaters = GROUND_SIZE
+      let j
+
+      for ( j = 0; j < 10; j++ ) 
+        createInstances( mesh, numWaters, xi => xi + GROUND_SIZE, () => 0, zi => zi + GROUND_SIZE)
+
+      for ( j = 0; j < 10; j++ ) 
+        createInstances( mesh, numWaters, xi => xi + GROUND_SIZE, () => 0, zi => zi - GROUND_SIZE)
+
+      for ( j = 0; j < 10; j++ ) 
+        createInstances( mesh, numWaters, xi => xi - GROUND_SIZE, () => 0, zi => zi + GROUND_SIZE)
+
+      for ( j = 0; j < 10; j++ ) 
+        createInstances( mesh, numWaters, xi => xi - GROUND_SIZE, () => 0, zi => zi - GROUND_SIZE)
+      break
 
     // the wird pixelated 3d tree
     case 'coconut-tree' : 
@@ -258,10 +289,8 @@ function setup(mesh: Mesh) {
       mesh.position = new Vector3(60, yOffset, 12)
       mesh.scaling = scaleDown.scale(scale)
       mesh.visibility = 1
-
-
-      createInstances( mesh, 10, i=>rand() * 80 + 12, i=>yOffset, i=>rand()*100)
-      createInstances( mesh, 15, i=>rand() *-120, i=> yOffset, i=> rand()*i*3)
+      createInstances( mesh, 10, i=>rand()*GROUND_SIZE, i=>yOffset, i=>rand()*GROUND_SIZE/2)
+      createInstances( mesh, 15, i=>rand()*-GROUND_SIZE, i=> yOffset, i=> rand()*i*3)
       break
 
     // the big red and black checker thing
@@ -269,9 +298,8 @@ function setup(mesh: Mesh) {
       mesh.position = new Vector3(-30, 0, 2)
       mesh.scaling = new Vector3(0.01, 0.01, 0.01)
       mesh.visibility = 1
-      createInstances( mesh, 23, i=>rand()*-40, i=>yOffset, i=>rand()*30)
-      createInstances( mesh, 23, i=>rand()*i*3, i=>yOffset, i=>rand()*i*2)
-     
+      createInstances( mesh, 23, i=>rand()*-GROUND_SIZE/3, i=>yOffset, i=>rand()*GROUND_SIZE/5)
+      createInstances( mesh, 13, i=>rand()*i*3, i=>yOffset, i=>rand()*i*2)
       break
   }
 }
@@ -281,19 +309,17 @@ interface SetupIntialPositions {
   (tasks, environment): boolean
 }
 
+
 let setupInitialPositions: SetupIntialPositions = (tasks, environment): boolean => {
   const setInitialPosition = ( scene: Scene,  task, indexAsset ) => {
     const { loadedMeshes } = task
     const internalMesh = loadedMeshes[0]    
-    loadedMeshes.forEach( setup )
+    loadedMeshes.forEach(setup)
            
-    setup(internalMesh)            
-   
-
+    setup(internalMesh)
   }
 
   tasks.filter( task  => {
-    console.log
     const name = task.sceneFilename.concat().replace('.babylon', '')
     return models.includes( name ) 
   } ).forEach( (task, i) => setInitialPosition(environment.scene, task, i) )
@@ -327,6 +353,7 @@ interface MoveMeshes {
   ( keyCode: String, meshes: Mesh[] ): void
   keyPresses: String[]
 }
+
 
 let moveMeshes: MoveMeshes = Object.assign(
   (code: String, meshes: any[]) => {
