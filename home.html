@@ -1,26 +1,68 @@
 <html>
 <head>
   <link href="https://fonts.googleapis.com/css2?family=Chelsea+Market&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bungee+Shade&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Courgette&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bubblegum+Sans&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Monoton&display=swap" rel="stylesheet">
 
   <style>
-
-    #welcome {
+    #hangryBuddhaIsland{
+      background-image: url('HangryBuddhaIsland.png');
+      background-size : 100% auto;
+    }
+      #welcomeHeader {
       display: flex;
       flex-flow: row-wrap;
       justify-content: center;
       align-items: center;
-      font-family: 'Chelsea Market', cursive;
-    }
+      font-weight: 900;
+      font-size: 48px;
+      font-family: 'Julius Sans One', sans-serif;
+       }
 
+      #welcomeBody {
+      display: flex;
+      text-align: center;
+      flex-flow: row-wrap;
+      justify-content: center;
+      align-items: center;
+      padding: 10px;
+      background-color:rgb(45, 189, 45, 0.6);
+      font-size: 24px;
+      font-family: 'Chelsea Market', cursive;  
+       }
+      
+       #welcomeHolder {
+    margin: 0;
+    padding: 20px;
+    background-color:rgb(240, 248, 255, 0.5);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -50%);
+       }
+
+      
+      
   </style>
 </head>
 
-<body>
-  <h1>Introversia 1492</h1>
+<body id="hangryBuddhaIsland">
+  <div id="welcomeHolder">
+  <h1 id="welcomeHeader">INTROVERSIA 1492</h1>
+  
 
-  <div id="welcome">
+
+  
+  <div id="welcomeBody">
     <!-- Moar stuff -->
+    <p>Please Wait<br/>
+      to<br/>
+    Start Your Training</p>
   </div>
-
+</div>
 </body>
 </html>
