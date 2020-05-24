@@ -40,7 +40,7 @@ function init() {
 /** Create a new camera attached to `scene` */
 function createCamera(name, position, scene): FreeCamera {
   const canvas = document.querySelector("canvas") as HTMLCanvasElement
-  const camera = new FreeCamera("camera1", new Vector3(0, 5, -10), scene)
+  const camera = new FreeCamera("camera1", new Vector3(-10, 5, 15), scene)
   camera.setTarget(Vector3.Zero())
   camera.attachControl(canvas, true)
   return camera
@@ -54,10 +54,10 @@ function createSphere(scene: Scene): Mesh {
 
   sphere.position.y = 2
 
-  greenCloth.diffuseColor = new Color3( 0, 0, 1 )
-  greenCloth.specularColor = new Color3( 0, 0, 1 )
-  greenCloth.emissiveColor = new Color3( 1, 0, 0 )
-  greenCloth.ambientColor = new Color3( 1, 0, 0 )
+  greenCloth.diffuseColor = new Color3( 1, .51, 1 )
+  greenCloth.specularColor = new Color3( 0, .51, 1 )
+  greenCloth.emissiveColor = new Color3( .1, 1, 0 )
+  greenCloth.ambientColor = new Color3( 1, .5, 0 )
 
   sphere.material = greenCloth
   return sphere
@@ -80,13 +80,11 @@ function createGardenScene(engine) {
 
 /** Creates a grassy mesh on `scene` */
 function createGround(scene: Scene, name: string = 'grass.jpg'): Mesh {
-  // const material = new GridMaterial("grid", scene)
   const props = 
     { width: GROUND_SIZE
     , height: GROUND_SIZE
     , subdivisions: GROUND_DEPTH }
 
-  // const ground = MeshBuilder.CreateGround("ground1", props, scene)
   const ground = MeshBuilder.CreateGround(name, props, scene)
   const material = new StandardMaterial(name, scene)
   material.alpha = 0.5;
@@ -121,8 +119,7 @@ function createSkybox(scene, name = 'skybox'): Mesh {
 function render(environment: any) {
     const { scene, light, camera, skybox, ground, sphere } = environment;
     const listen = e => {
-      // window.removeEventListener( 'keydown', listen )
-      handleKeydown( e.code, [sphere, camera] )
+      moveMeshes( e.code, [sphere, camera] )
     }
 
     window.removeEventListener( 'keydown', listen )
@@ -130,36 +127,45 @@ function render(environment: any) {
     scene.render()
 }
 
+interface MoveMeshes {
+  ( keyCode: String, meshes: Mesh[] ): void
+  keyPresses: String[]
+}
 
-function handleKeydown(code: String, meshes: Mesh[]) {
+let moveMeshes: MoveMeshes = Object.assign(
+  (code: String, meshes: Mesh[]) => {
+  if ( !moveMeshes.keyPresses ) 
+    moveMeshes.keyPresses = []
+
+
   const newRelativePosition = 
     { x: 0
     , y: 0
-    , z: 0}
+    , z: 0 }
 
   switch( code ) {
-    case 'KeyD' :
-      newRelativePosition.x += 0.1
+    case 'KeyA' :
+      newRelativePosition.x += 0.01
       break
 
-    case 'KeyA' :
-      newRelativePosition.x -= 0.1
+    case 'KeyD' :
+      newRelativePosition.x -= 0.01
       break
 
     case 'KeyQ' :
-      newRelativePosition.y += 0.1
+      newRelativePosition.y += 0.0001
       break
 
     case 'KeyE' :
-      newRelativePosition.y -= 0.1
-      break
-
-    case 'KeyW' :
-      newRelativePosition.z += 0.1
+      newRelativePosition.y -= 0.0001
       break
 
     case 'KeyS' :
-      newRelativePosition.z -= 0.1
+      newRelativePosition.z += 0.01
+      break
+
+    case 'KeyW' :
+      newRelativePosition.z -= 0.01
       break
     default :
   }
@@ -170,5 +176,5 @@ function handleKeydown(code: String, meshes: Mesh[]) {
   }
 
   meshes.forEach( update )
-}
+}, { keyPresses: [] } )
 
