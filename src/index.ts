@@ -175,8 +175,15 @@ function setup(mesh: Mesh) {
 
   // the wird pixelated 3d tree
   if ( name.indexOf('cocos') === 0 ) {
-    mesh.position = new Vector3( 60, 0, 12  )
-    mesh.scaling = scaleDown
+    let scale = 1/4
+    let yOffset = 50 * scale
+    mesh.position = new Vector3(60, yOffset, 12);
+    mesh.scaling = scaleDown.scale(scale);
+
+    for ( let i = 0; i < 33; i++ ) {
+      let clone = mesh.createInstance(name + i)
+      clone.position = new Vector3( Math.random() * 30, yOffset, i * Math.random() * 10)
+    }
   }
 
   // the big red and black checker thing
@@ -270,8 +277,6 @@ let moveMeshes: MoveMeshes = Object.assign(
     case 'KeyE' :
       // newRelativePosition.y -= slower
       break
-
-    
 
       // forwards
     case 'KeyW' :
