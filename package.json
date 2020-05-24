@@ -4,7 +4,8 @@
   "main": "index.js",
   "dependencies": {
     "@babylonjs/core": "^4.1.0",
-    "@babylonjs/materials": "^4.1.0"
+    "@babylonjs/materials": "^4.1.0",
+    "webpack-dev-server": "^3.11.0"
   },
   "devDependencies": {
     "ts-loader": "^7.0.4",

@@ -23,6 +23,8 @@ import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
 import '@babylonjs/core/Loading/loadingScreen'
 import { AssetsManager, MeshAssetTask } from '@babylonjs/core/Misc/assetsManager'
 
+const rand = () => Math.random()
+
 let engine;
 // @ts-ignore
 const GROUND_SIZE = Number.parseFloat(600)
@@ -61,7 +63,9 @@ function init() {
   }
 
   manager.onTaskSuccessObservable.add(function(task) {
-      // console.log('task successful', task)
+      console.log('task successful', task)
+      // @ts-ignore
+      task.loadedMeshes.forEach( mesh => mesh.metadata = task.name )
   });
 
   manager.onTaskErrorObservable.add(function(task) {
@@ -69,7 +73,7 @@ function init() {
   });
 
   models.map( ( model ) =>  
-    manager.addMeshTask( `${model} model`, '', 'models/', `${model}.babylon` ) )
+    manager.addMeshTask( model, '', 'models/', `${model}.babylon` ) )
 
   manager.load()
 }
@@ -156,35 +160,54 @@ function createSkybox(scene, name = 'skybox'): Mesh {
 }
 
 function setup(mesh: Mesh) {
-  
+  mesh.checkCollisions = true
+  mesh.visibility = 0
 
-  mesh.checkCollisions = true;  
+  const name = mesh.name
+  const unit = Vector3.One()
+  const scaleUp = new Vector3(2, 2, 2)
+  const scaleDown = new Vector3(0.125, 0.125, 0.125)
 
-  const name = mesh.name;
-  const scaleUp = new Vector3( 2, 2, 2 )
-  const scaleDown = new Vector3( 0.125, 0.125, 0.125 )
-
-  if ( name.indexOf('bird') === 0 ) {
-    mesh.position = new Vector3( 3, 10, 2  )
-    mesh.scaling = scaleUp
-  } else {
-    console.log('reading name: ' , name)
-    //@ts-ignore
-    window.meshes.push(mesh)
+  const createInstances = ( mesh, qty, x, y, z ) => {
+    for ( let i = 0; i < qty; i++ ) {
+      let clone = mesh.createInstance(name + i)
+      clone.position = new Vector3(x(i), y(i), z(i))
+      let scale = rand() * 2;
+      if ( scale > 1 ) scale /= 2;
+      // mesh.scaling = mesh.scaling.scale( scale )
+    }
   }
+
+  switch ( mesh.metadata ) {
+    case 'bird' : 
+      mesh.position = new Vector3(3, 10, 2)
+      mesh.scaling = scaleUp
+      mesh.visibility = 1
+      break
 
   // the wird pixelated 3d tree
-  if ( name.indexOf('cocos') === 0 ) {
-    mesh.position = new Vector3( 60, 0, 12  )
-    mesh.scaling = scaleDown
-  }
+  case 'coconut-tree' : 
+    let scale = 1/4
+    let yOffset = 50 * scale
+    mesh.position = new Vector3(60, yOffset, 12)
+    mesh.scaling = scaleDown.scale(scale)
+    mesh.visibility = 1
+
+
+    createInstances( mesh, 20, i=>rand() * 40 + 12, i=>yOffset, i=>rand()*50 )
+    createInstances( mesh, 35, i=>rand() *-90, i=> yOffset, i=> rand()*i * 2 )
+    break
 
   // the big red and black checker thing
-  if ( name.indexOf('palmtree') === 0 ) {
-    mesh.position = new Vector3( -30, 0, 2  )
-    mesh.scaling = new Vector3( 0.01, 0.01, 0.01  )
+  case 'island-palmtree' : 
+    mesh.position = new Vector3(-30, 0, 2)
+    mesh.scaling = new Vector3(0.01, 0.01, 0.01)
+    mesh.visibility = 1
+    createInstances( mesh, 23, i=>rand()*-40, i=>yOffset, i=>rand()*30)
+    createInstances( mesh, 23, i=>rand()*i*2+10, i=>yOffset, i=>rand()*i*3)
+   
+    break
   }
-
 }
 
 
@@ -248,8 +271,8 @@ let moveMeshes: MoveMeshes = Object.assign(
     , y: 0
     , z: 0 }
 
-  const faster = 0.005
-  const slower = 0.0001
+  const faster = 0.0025
+  const slower = 0.001
 
   switch( code ) {
     // left
@@ -270,8 +293,6 @@ let moveMeshes: MoveMeshes = Object.assign(
     case 'KeyE' :
       // newRelativePosition.y -= slower
       break
-
-    
 
       // forwards
     case 'KeyW' :
