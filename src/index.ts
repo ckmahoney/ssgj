@@ -27,7 +27,13 @@ import { AssetsManager, MeshAssetTask } from '@babylonjs/core/Misc/assetsManager
 const GROUND_SIZE = Number.parseFloat(600)
 // @ts-ignore
 const GROUND_DEPTH = Number.parseFloat(2)
-
+const models =
+  [ 'bird'
+  , 'coconut-tree'
+  , 'grass'
+  , 'island-palmtree'
+  , 'plant' 
+  , 'soil' ]
 
 init()
 
@@ -38,25 +44,15 @@ function init() {
   const engine = new Engine(canvas)
   const environment = createGardenScene(engine);
 
-  const meshes =
-    [ 'bird'
-    , 'coconut-tree'
-    , 'grass'
-    , 'island-palmtree'
-    , 'plant' 
-    , 'soil' ]
-
   const manager = new AssetsManager(environment.scene)
   manager.onProgress = function(remainingCount, totalCount, lastFinishedTask) {
       engine.loadingUIText = 'Loading next scene. ' + remainingCount + ' out of ' + totalCount + ' in the works.'
   }
 
   manager.onFinish = (tasks) => {
-    console.log('Finished loading')
-    console.log(tasks)
     const sphere = createSphere(environment.scene)
     const state = {...environment, sphere}
-    engine.runRenderLoop( () => render(state) )
+    engine.runRenderLoop( () => render(state, tasks) )
   }
 
   manager.onTaskSuccessObservable.add(function(task) {
@@ -67,8 +63,8 @@ function init() {
       console.log('task error', task)
   });
 
-  meshes.map( ( model ) =>  
-    manager.addMeshTask( `${model} model`, '', 'models/', `${model}.babylon` ) )
+  models.map( ( model ) =>  
+    manager.addMeshTask( `${model} model`, model, 'models/', `${model}.babylon` ) )
 
   manager.load()
 }
@@ -125,7 +121,7 @@ function createGround(scene: Scene, name: string = 'grass.jpg'): Mesh {
   ground.position.y = -2
   const material = new StandardMaterial(name, scene)
   material.alpha = 0.5;
-  const grass = new TEXTURES.Texture(`textures/${name}`, scene)
+  const grass = new TEXTURES.Texture(`grass model`, scene)
   material.diffuseTexture = grass
   material.reflectionTexture = grass
 
@@ -153,9 +149,40 @@ function createSkybox(scene, name = 'skybox'): Mesh {
 }
 
 
+interface SetupIntialPositions {
+  (tasks): boolean
+}
+
+let setupInitialPositions: SetupIntialPositions = (tasks): boolean => {
+  const setInitialPosition = ( task, indexAsset ) => {
+    console.log('checking task' , task)
+
+    const { loadedMeshes } = task
+    loadedMeshes.forEach( ( mesh, indexMesh ) => {
+      mesh.position.x = (indexAsset + ++indexMesh) * 2
+      mesh.position.z = indexMesh * 2 
+    } )
+  }
+
+  tasks.filter( task  => {
+    const name = task.sceneFilename.concat().replace('.babylon', '')
+    return models.includes( name ) 
+  } ).forEach( setInitialPosition )
+  return true
+}
+
+interface Render {
+  (environment: any, tasks: any[]): void
+  isInitialized: boolean
+}
+
 /** Callback for Babylon to render a new frame */
-function render(environment: any) {
+let render: Render = Object.assign(
+  (environment: any, tasks: any[]) => {
     const { scene, light,  skybox, ground, sphere } = environment;
+    // if ( !render.isInitialized ) {
+    //   render.isInitialized = setupInitialPositions( tasks )
+    // }
 
     // Setup event handlers for user interactions
     const listen = e => {
@@ -165,7 +192,7 @@ function render(environment: any) {
     window.removeEventListener( 'keydown', listen )
     window.addEventListener( 'keydown', listen )
     scene.render()
-}
+}, { isInitialized: false } )
 
 
 interface MoveMeshes {
