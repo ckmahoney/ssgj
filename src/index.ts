@@ -15,6 +15,7 @@ import "@babylonjs/core/Meshes/Builders/boxBuilder"
 import '@babylonjs/core/Helpers/sceneHelpers'
 import '@babylonjs/core/Loading/Plugins/babylonFileLoader'
 import '@babylonjs/core/Loading/loadingScreen'
+import '@babylonjs/core/Collisions/collisionCoordinator'
 import * as GUI from 'babylonjs-gui'
 import * as TEXTURES from '@babylonjs/core/Materials/Textures'
 import { Matrix } from '@babylonjs/core/Maths/math.vector'
@@ -26,8 +27,9 @@ import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader'
 import { AssetsManager, MeshAssetTask } from '@babylonjs/core/Misc/assetsManager'
 
 const rand = () => Math.random()
+const VECTOR_ORIGIN = Vector3.Zero()
 
-let engine;
+let engine
 // @ts-ignore
 const GROUND_SIZE = Number.parseFloat(600)
 // @ts-ignore
@@ -42,13 +44,13 @@ const models =
 
 init()
     // @ts-ignore
-  window.meshes = [];
+  window.meshes = []
 
 /** Create and run the game environment */
 function init() {
   const canvas = document.querySelector("canvas") as HTMLCanvasElement
   engine = new Engine(canvas)
-  const environment = createGardenScene(engine);
+  const environment = createGardenScene(engine)
 
   const manager = new AssetsManager(environment.scene)
   manager.onProgress = function(remainingCount, totalCount, lastFinishedTask) {
@@ -73,11 +75,11 @@ function init() {
       console.log('task successful', task)
       // @ts-ignore
       task.loadedMeshes.forEach( mesh => mesh.metadata = task.name )
-  });
+  })
 
   manager.onTaskErrorObservable.add(function(task) {
       console.log('task error', task)
-  });
+  })
 
   models.map( ( model ) =>  
     manager.addMeshTask( model, '', 'models/', `${model}.babylon` ) )
@@ -89,29 +91,43 @@ function init() {
 function applyListners(scene: Scene) {
   scene.onPointerDown = function castRay() {
     const camera = scene.cameras[0]
-    var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), camera);  
-    var hit = scene.pickWithRay(ray);
+    var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), camera)  
+    var hit = scene.pickWithRay(ray)
 
     if (hit.pickedMesh && hit.pickedMesh.metadata == "cannon") {
-        createGUIButton();
+        createGUIButton()
     }
   }
 }
 
+
+
+//Creates a gui label to display the cannon
 function createGUIButton() {
-    //Creates a gui label to display the cannon
-    let guiCanvas = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-    let guiButton = GUI.Button.CreateSimpleButton("guiButton", "Cannon Selected");
-    guiButton.width = "150px"
-    guiButton.height = "40px";
-    guiButton.color = "white";
-    guiButton.cornerRadius = 5;
-    guiButton.background = "green";
-    guiButton.onPointerUpObservable.add(function() {
-        guiCanvas.dispose();
-    });
-    guiButton.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-    guiCanvas.addControl(guiButton);
+  let guiCanvas = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI")
+  let options = {
+    mint: "Mint",
+    cucumber: "Cucumber",
+    watermelon: "watermelon",
+  }
+  const colors = 
+    [ "#2ecc71"  // mint green
+    , "#f4f6f7" // off white
+    , "#e74c3c" ] // watermelon red
+    
+  const buttons = Object.entries( options ).map( ( [name, text], i) => {
+    const button = GUI.Button.CreateSimpleButton(name, text)
+    button.width = "15%"
+    button.height = "40px"
+    button.color = "white"
+    button.cornerRadius = 5
+    button.background = colors[i]
+    button.onPointerUpObservable.add(function() {
+      guiCanvas.dispose()
+    })
+    button.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER
+    guiCanvas.addControl(button)
+  } )
 }
 
 
@@ -120,8 +136,8 @@ function createGUIButton() {
 /** Create a new camera attached to `scene` */
 function createCamera(name, position, scene): FreeCamera {
   const canvas = document.querySelector("canvas") as HTMLCanvasElement
-  const camera = new FreeCamera("camera1", new Vector3(-10, 5, 15), scene)
-  camera.setTarget(Vector3.Zero())
+  const camera = new FreeCamera("camera", new Vector3(-10, 5, 15), scene)
+  camera.setTarget(VECTOR_ORIGIN)
   camera.attachControl(canvas, true)
   return camera
 }
@@ -146,18 +162,18 @@ function createSphere(scene: Scene): Mesh {
 /** Initialize static environmental for a garden */
 function createGardenScene(engine) {
   const scene = new Scene(engine)
-  scene.gravity = new Vector3(0, -9.81, 0);
+  scene.gravity = new Vector3(0, -9.81, 0)
   scene.createDefaultCameraOrLight(true, true, true)
-  scene.collisionsEnabled = true;
-  scene.cameras.forEach( cam => {
-    // @ts-ignore
-    // cam.applyGravity = true 
-    // // @ts-ignore
-    // cam.checkCollisions = true
-    // // @ts-ignore
-    // cam.collisionRadius = new Vector3(0.5, 0.5, 0.5)
-  } )
-  return {scene}
+  scene.collisionsEnabled = true
+  const camera = scene.cameras[0]
+
+  // @ts-ignore
+  camera.applyGravity = true 
+  // @ts-ignore
+  camera.checkCollisions = true
+  // @ts-ignore
+  camera.collisionRadius = new Vector3(0.5, 0.5, 0.5)
+  return {scene, camera}
 }
 
 
@@ -169,14 +185,14 @@ function createGround(scene: Scene, name: string = 'grass.babylon'): Mesh {
     , subdivisions: GROUND_DEPTH }
 
   const ground = MeshBuilder.CreateGround(name, props, scene)
-  ground.checkCollisions = true;
+  ground.checkCollisions = true
 
   const material = new StandardMaterial(name, scene)
   const grass = new TEXTURES.Texture(`textures/grass.jpg`, scene)
 
-  material.alpha = 1;
+  material.alpha = 1
   material.ambientTexture = grass
-  material.backFaceCulling = false;
+  material.backFaceCulling = false
 
   ground.material = material
   return ground
@@ -206,12 +222,14 @@ function setup(mesh: Mesh) {
   const scaleUp = new Vector3(2, 2, 2)
   const scaleDown = new Vector3(0.125, 0.125, 0.125)
 
+  const SPAWN_CLEAR_RADIUS = 15
+
   const createInstances = ( mesh, qty, x, y, z ) => {
     for ( let i = 0; i < qty; i++ ) {
       let clone = mesh.createInstance(name + i)
-      clone.position = new Vector3(x(i), y(i), z(i))
-      let scale = rand() * 2;
-      if ( scale > 1 ) scale /= 2;
+      clone.position = new Vector3(x(i) + SPAWN_CLEAR_RADIUS, y(i), z(i) + SPAWN_CLEAR_RADIUS)
+      // let scale = rand() * 2
+      // if ( scale > 1 ) scale /= 2
       // mesh.scaling = mesh.scaling.scale( scale )
     }
   }
@@ -242,8 +260,8 @@ function setup(mesh: Mesh) {
       mesh.visibility = 1
 
 
-      createInstances( mesh, 20, i=>rand() * 40 + 12, i=>yOffset, i=>rand()*50 )
-      createInstances( mesh, 35, i=>rand() *-90, i=> yOffset, i=> rand()*i * 2 )
+      createInstances( mesh, 10, i=>rand() * 80 + 12, i=>yOffset, i=>rand()*100)
+      createInstances( mesh, 15, i=>rand() *-120, i=> yOffset, i=> rand()*i*3)
       break
 
     // the big red and black checker thing
@@ -252,7 +270,7 @@ function setup(mesh: Mesh) {
       mesh.scaling = new Vector3(0.01, 0.01, 0.01)
       mesh.visibility = 1
       createInstances( mesh, 23, i=>rand()*-40, i=>yOffset, i=>rand()*30)
-      createInstances( mesh, 23, i=>rand()*i*2+10, i=>yOffset, i=>rand()*i*3)
+      createInstances( mesh, 23, i=>rand()*i*3, i=>yOffset, i=>rand()*i*2)
      
       break
   }
@@ -266,10 +284,10 @@ interface SetupIntialPositions {
 let setupInitialPositions: SetupIntialPositions = (tasks, environment): boolean => {
   const setInitialPosition = ( scene: Scene,  task, indexAsset ) => {
     const { loadedMeshes } = task
-    const internalMesh = loadedMeshes[0];    
+    const internalMesh = loadedMeshes[0]    
     loadedMeshes.forEach( setup )
            
-    setup(internalMesh);            
+    setup(internalMesh)            
    
 
   }
@@ -282,19 +300,17 @@ let setupInitialPositions: SetupIntialPositions = (tasks, environment): boolean 
   return true
 }
 
- 
-
-
 
 interface Render {
   (environment: any): void
   isInitialized: boolean
 }
 
+
 /** Callback for Babylon to render a new frame */
 let render: Render = Object.assign(
   (environment: any) => {
-    const { scene, light,  skybox, ground } = environment;
+    const { scene, light,  skybox, ground } = environment
 
     // Setup event handlers for user interactions
     const listen = e => {
@@ -359,11 +375,9 @@ let moveMeshes: MoveMeshes = Object.assign(
   }
   
   const update = mesh => {
-    const pos = {...mesh.position}
-    for ( let axis in newRelativePosition ) 
-      pos[axis] += newRelativePosition[axis]
-
-    mesh.setPosition( new Vector3( pos.x, pos.y, pos.z ) )
+    const v = new Vector3( newRelativePosition.x, newRelativePosition.y, newRelativePosition.z )
+    mesh.setPosition( mesh.position.add(v) )
+    mesh.setTarget( mesh.target.add(v) )
   }
 
   meshes.forEach( update )
