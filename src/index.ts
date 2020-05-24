@@ -31,7 +31,7 @@ const VECTOR_ORIGIN = Vector3.Zero()
 
 let engine
 // @ts-ignore
-const GROUND_SIZE = Number.parseFloat(200)
+const GROUND_SIZE = Number.parseFloat(60)
 // @ts-ignore
 const GROUND_DEPTH = Number.parseFloat(2)
 const models =
@@ -66,7 +66,7 @@ function init() {
     setupInitialPositions(tasks, {scene: environment.scene})
 
 
-    applyListners(environment.scene) 
+    // applyListners(environment.scene) 
 
 
     engine.runRenderLoop( () => render(state) )
@@ -259,7 +259,7 @@ function setup(mesh: Mesh) {
       mesh.scaling = unit.scale( 1 / 120 )
       mesh.visibility = 1
       for ( let j = 0; j < 10; j++ ) 
-        createInstances( mesh, 100, i => j * i * rand(), () => 0, i => rand() * j * i)
+        createInstances( mesh, 20, i => j * i * rand(), () => 0, i => rand() * j * i)
       break
 
 
@@ -298,7 +298,7 @@ function setup(mesh: Mesh) {
       mesh.position = new Vector3(-30, 0, 2)
       mesh.scaling = new Vector3(0.01, 0.01, 0.01)
       mesh.visibility = 1
-      createInstances( mesh, 23, i=>rand()*-GROUND_SIZE/3, i=>yOffset, i=>rand()*GROUND_SIZE/5)
+      createInstances( mesh, 13, i=>rand()*-GROUND_SIZE/3, i=>yOffset, i=>rand()*GROUND_SIZE/5)
       createInstances( mesh, 13, i=>rand()*i*3, i=>yOffset, i=>rand()*i*2)
       break
   }
