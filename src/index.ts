@@ -13,14 +13,16 @@ import "@babylonjs/core/Meshes/Builders/boxBuilder"
 
 // my imports
 import '@babylonjs/core/Helpers/sceneHelpers'
+import '@babylonjs/core/Loading/Plugins/babylonFileLoader'
+import '@babylonjs/core/Loading/loadingScreen'
+import * as GUI from 'babylonjs-gui'
 import * as TEXTURES from '@babylonjs/core/Materials/Textures'
+import { Matrix } from '@babylonjs/core/Maths/math.vector'
 import { Color3 } from '@babylonjs/core/Maths/math.color'
 import { StandardMaterialDefines } from '@babylonjs/core/Materials/standardMaterial'
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial"
 import { MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder'
-import '@babylonjs/core/Loading/Plugins/babylonFileLoader';
-import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
-import '@babylonjs/core/Loading/loadingScreen'
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader'
 import { AssetsManager, MeshAssetTask } from '@babylonjs/core/Misc/assetsManager'
 
 const rand = () => Math.random()
@@ -59,6 +61,11 @@ function init() {
     const skybox = createSkybox(environment.scene, 'skybox')
     const ground = createGround(environment.scene, 'ground')
     setupInitialPositions(tasks, {scene: environment.scene})
+
+
+    applyListners(environment.scene) 
+
+
     engine.runRenderLoop( () => render(state) )
   }
 
@@ -77,6 +84,37 @@ function init() {
 
   manager.load()
 }
+
+
+function applyListners(scene: Scene) {
+  scene.onPointerDown = function castRay() {
+    const camera = scene.cameras[0]
+    var ray = scene.createPickingRay(scene.pointerX, scene.pointerY, Matrix.Identity(), camera);  
+    var hit = scene.pickWithRay(ray);
+
+    if (hit.pickedMesh && hit.pickedMesh.metadata == "cannon") {
+        createGUIButton();
+    }
+  }
+}
+
+function createGUIButton() {
+    //Creates a gui label to display the cannon
+    let guiCanvas = GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    let guiButton = GUI.Button.CreateSimpleButton("guiButton", "Cannon Selected");
+    guiButton.width = "150px"
+    guiButton.height = "40px";
+    guiButton.color = "white";
+    guiButton.cornerRadius = 5;
+    guiButton.background = "green";
+    guiButton.onPointerUpObservable.add(function() {
+        guiCanvas.dispose();
+    });
+    guiButton.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+    guiCanvas.addControl(guiButton);
+}
+
+
 
 
 /** Create a new camera attached to `scene` */
@@ -185,28 +223,38 @@ function setup(mesh: Mesh) {
       mesh.visibility = 1
       break
 
-  // the wird pixelated 3d tree
-  case 'coconut-tree' : 
-    let scale = 1/4
-    let yOffset = 50 * scale
-    mesh.position = new Vector3(60, yOffset, 12)
-    mesh.scaling = scaleDown.scale(scale)
-    mesh.visibility = 1
+    case 'plant' :
+      mesh.position = new Vector3(0, 0.01,0)
+      mesh.scaling = unit.scale( 1 / 120 )
+      mesh.visibility = 1
+      for ( let j = 0; j < 10; j++ ) {
+        createInstances( mesh, 100, i => j * i * rand(), () => 0, i => rand() * j * i)
+      }
+      break
 
 
-    createInstances( mesh, 20, i=>rand() * 40 + 12, i=>yOffset, i=>rand()*50 )
-    createInstances( mesh, 35, i=>rand() *-90, i=> yOffset, i=> rand()*i * 2 )
-    break
+    // the wird pixelated 3d tree
+    case 'coconut-tree' : 
+      let scale = 1/4
+      let yOffset = 50 * scale
+      mesh.position = new Vector3(60, yOffset, 12)
+      mesh.scaling = scaleDown.scale(scale)
+      mesh.visibility = 1
 
-  // the big red and black checker thing
-  case 'island-palmtree' : 
-    mesh.position = new Vector3(-30, 0, 2)
-    mesh.scaling = new Vector3(0.01, 0.01, 0.01)
-    mesh.visibility = 1
-    createInstances( mesh, 23, i=>rand()*-40, i=>yOffset, i=>rand()*30)
-    createInstances( mesh, 23, i=>rand()*i*2+10, i=>yOffset, i=>rand()*i*3)
-   
-    break
+
+      createInstances( mesh, 20, i=>rand() * 40 + 12, i=>yOffset, i=>rand()*50 )
+      createInstances( mesh, 35, i=>rand() *-90, i=> yOffset, i=> rand()*i * 2 )
+      break
+
+    // the big red and black checker thing
+    case 'island-palmtree' : 
+      mesh.position = new Vector3(-30, 0, 2)
+      mesh.scaling = new Vector3(0.01, 0.01, 0.01)
+      mesh.visibility = 1
+      createInstances( mesh, 23, i=>rand()*-40, i=>yOffset, i=>rand()*30)
+      createInstances( mesh, 23, i=>rand()*i*2+10, i=>yOffset, i=>rand()*i*3)
+     
+      break
   }
 }
 
@@ -233,6 +281,10 @@ let setupInitialPositions: SetupIntialPositions = (tasks, environment): boolean 
   } ).forEach( (task, i) => setInitialPosition(environment.scene, task, i) )
   return true
 }
+
+ 
+
+
 
 interface Render {
   (environment: any): void
