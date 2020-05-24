@@ -37,7 +37,8 @@ const models =
   , 'soil' ]
 
 init()
-
+    // @ts-ignore
+  window.meshes = [];
 
 /** Create and run the game environment */
 function init() {
@@ -51,8 +52,8 @@ function init() {
   }
 
   manager.onFinish = (tasks) => {
-    const sphere = createSphere(environment.scene)
-    const state = {...environment, sphere}
+    // const sphere = createSphere(environment.scene)
+    const state = {...environment}
     const skybox = createSkybox(environment.scene, 'skybox')
     const ground = createGround(environment.scene, 'ground')
     setupInitialPositions(tasks, {scene: environment.scene})
@@ -60,7 +61,7 @@ function init() {
   }
 
   manager.onTaskSuccessObservable.add(function(task) {
-      console.log('task successful', task)
+      // console.log('task successful', task)
   });
 
   manager.onTaskErrorObservable.add(function(task) {
@@ -103,9 +104,17 @@ function createSphere(scene: Scene): Mesh {
 /** Initialize static environmental for a garden */
 function createGardenScene(engine) {
   const scene = new Scene(engine)
+  scene.gravity = new Vector3(0, -9.81, 0);
   scene.createDefaultCameraOrLight(true, true, true)
- 
-
+  scene.collisionsEnabled = true;
+  scene.cameras.forEach( cam => {
+    // @ts-ignore
+    // cam.applyGravity = true 
+    // // @ts-ignore
+    // cam.checkCollisions = true
+    // // @ts-ignore
+    // cam.collisionRadius = new Vector3(0.5, 0.5, 0.5)
+  } )
   return {scene}
 }
 
@@ -118,13 +127,12 @@ function createGround(scene: Scene, name: string = 'grass.babylon'): Mesh {
     , subdivisions: GROUND_DEPTH }
 
   const ground = MeshBuilder.CreateGround(name, props, scene)
-  ground.position.y = -2
+  ground.checkCollisions = true;
+
   const material = new StandardMaterial(name, scene)
-  material.alpha = 1;
   const grass = new TEXTURES.Texture(`textures/grass.jpg`, scene)
-  // material.diffuseTexture = grass
-  // material.reflectionTexture = grass
-  // material.specularTexture = grass
+
+  material.alpha = 1;
   material.ambientTexture = grass
   material.backFaceCulling = false;
 
@@ -148,15 +156,35 @@ function createSkybox(scene, name = 'skybox'): Mesh {
 }
 
 function setup(mesh: Mesh) {
-  console.log('got mesh: ' )
-  console.log(mesh)
-    mesh.position.x = 10;
-    mesh.position.y = 1;
-    mesh.position.z = -10;
+  
 
-    mesh.scaling.x = 5;
-    mesh.scaling.y = 5;
-    mesh.scaling.z = 5;
+  mesh.checkCollisions = true;  
+
+  const name = mesh.name;
+  const scaleUp = new Vector3( 2, 2, 2 )
+  const scaleDown = new Vector3( 0.125, 0.125, 0.125 )
+
+  if ( name.indexOf('bird') === 0 ) {
+    mesh.position = new Vector3( 3, 10, 2  )
+    mesh.scaling = scaleUp
+  } else {
+    console.log('reading name: ' , name)
+    //@ts-ignore
+    window.meshes.push(mesh)
+  }
+
+  // the wird pixelated 3d tree
+  if ( name.indexOf('cocos') === 0 ) {
+    mesh.position = new Vector3( 60, 0, 12  )
+    mesh.scaling = scaleDown
+  }
+
+  // the big red and black checker thing
+  if ( name.indexOf('palmtree') === 0 ) {
+    mesh.position = new Vector3( -30, 0, 2  )
+    mesh.scaling = new Vector3( 0.01, 0.01, 0.01  )
+  }
+
 }
 
 
@@ -167,19 +195,11 @@ interface SetupIntialPositions {
 let setupInitialPositions: SetupIntialPositions = (tasks, environment): boolean => {
   const setInitialPosition = ( scene: Scene,  task, indexAsset ) => {
     const { loadedMeshes } = task
-    console.log('task', task)
-    console.log('loadedMeshes', loadedMeshes)
     const internalMesh = loadedMeshes[0];    
-    internalMesh.position.y = 20;            
-    internalMesh.scaling.x = 0.2;            
-    internalMesh.scaling.y = 0.2;            
-    internalMesh.scaling.z = 0.2;                        
+    loadedMeshes.forEach( setup )
+           
     setup(internalMesh);            
-    var bb1 = Mesh.CreateBox("bb1", 1, scene);            
-    bb1.scaling = new Vector3(0.2, 17, 48);            
-    bb1.position = new Vector3(-7.7, 0, 20);            
-    bb1.visibility = 0;            
-    bb1.checkCollisions = true;  
+   
 
   }
 
@@ -199,11 +219,11 @@ interface Render {
 /** Callback for Babylon to render a new frame */
 let render: Render = Object.assign(
   (environment: any) => {
-    const { scene, light,  skybox, ground, sphere } = environment;
+    const { scene, light,  skybox, ground } = environment;
 
     // Setup event handlers for user interactions
     const listen = e => {
-      moveMeshes( e.code, [sphere] )
+      moveMeshes( e.code, scene.cameras )
     }
 
     window.removeEventListener( 'keydown', listen )
@@ -218,7 +238,7 @@ interface MoveMeshes {
 }
 
 let moveMeshes: MoveMeshes = Object.assign(
-  (code: String, meshes: Mesh[]) => {
+  (code: String, meshes: any[]) => {
   if ( !moveMeshes.keyPresses ) 
     moveMeshes.keyPresses = []
 
@@ -228,36 +248,49 @@ let moveMeshes: MoveMeshes = Object.assign(
     , y: 0
     , z: 0 }
 
+  const faster = 0.005
+  const slower = 0.0001
+
   switch( code ) {
+    // left
     case 'KeyA' :
-      newRelativePosition.x += 0.01
+      newRelativePosition.x -= faster
       break
 
+      // right
     case 'KeyD' :
-      newRelativePosition.x -= 0.01
+      newRelativePosition.x += slower
+      
       break
 
     case 'KeyQ' :
-      newRelativePosition.y += 0.0001
+      // newRelativePosition.y += slower
       break
 
     case 'KeyE' :
-      newRelativePosition.y -= 0.0001
+      // newRelativePosition.y -= slower
       break
 
-    case 'KeyS' :
-      newRelativePosition.z += 0.01
-      break
+    
 
+      // forwards
     case 'KeyW' :
-      newRelativePosition.z -= 0.01
+      newRelativePosition.z += faster
+      break
+
+      // backwards
+    case 'KeyS' :
+      newRelativePosition.z -= slower
       break
     default :
   }
   
   const update = mesh => {
+    const pos = {...mesh.position}
     for ( let axis in newRelativePosition ) 
-      mesh.position[axis] += newRelativePosition[axis]
+      pos[axis] += newRelativePosition[axis]
+
+    mesh.setPosition( new Vector3( pos.x, pos.y, pos.z ) )
   }
 
   meshes.forEach( update )
