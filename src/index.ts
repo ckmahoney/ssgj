@@ -12,11 +12,16 @@ import "@babylonjs/core/Meshes/Builders/boxBuilder"
 
 
 // my imports
+import '@babylonjs/core/Helpers/sceneHelpers'
 import * as TEXTURES from '@babylonjs/core/Materials/Textures'
 import { Color3 } from '@babylonjs/core/Maths/math.color'
-import { StandardMaterialDefines } from "@babylonjs/core/Materials/standardMaterial"
+import { StandardMaterialDefines } from '@babylonjs/core/Materials/standardMaterial'
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial"
-import { MeshBuilder} from "@babylonjs/core/Meshes/meshBuilder"
+import { MeshBuilder} from '@babylonjs/core/Meshes/meshBuilder'
+import '@babylonjs/core/Loading/Plugins/babylonFileLoader';
+import { SceneLoader } from '@babylonjs/core/Loading/sceneLoader';
+import '@babylonjs/core/Loading/loadingScreen'
+import { AssetsManager, MeshAssetTask } from '@babylonjs/core/Misc/assetsManager'
 
 // @ts-ignore
 const GROUND_SIZE = Number.parseFloat(600)
@@ -32,8 +37,41 @@ function init() {
   const canvas = document.querySelector("canvas") as HTMLCanvasElement
   const engine = new Engine(canvas)
   const environment = createGardenScene(engine);
-  const sphere = createSphere(environment.scene)
-  engine.runRenderLoop( () => render({sphere, ...environment}) )
+
+  const meshes = (
+    [ 'bird'
+    , 'coconut-tree'
+    , 'grass'
+    , 'island-palmtree'
+    , 'plant' 
+    , 'soil' ] 
+    )//.map( model => `${model}.babylon` )
+
+  const manager = new AssetsManager(environment.scene)
+  manager.onProgress = function(remainingCount, totalCount, lastFinishedTask) {
+      engine.loadingUIText = 'Loading next scene. ' + remainingCount + ' out of ' + totalCount + ' in the works.'
+  }
+
+  manager.onFinish = (tasks) => {
+    console.log('Finished loading')
+    console.log(tasks)
+    const sphere = createSphere(environment.scene)
+    const state = {...environment, sphere}
+    engine.runRenderLoop( () => render(state) )
+  }
+
+  manager.onTaskSuccessObservable.add(function(task) {
+      console.log('task successful', task)
+  });
+
+  manager.onTaskErrorObservable.add(function(task) {
+      console.log('task error', task)
+  });
+
+  meshes.map( ( model ) =>  
+    manager.addMeshTask( `${model} model`, '', 'models/', model ) )
+
+  manager.load()
 }
 
 
@@ -67,14 +105,13 @@ function createSphere(scene: Scene): Mesh {
 /** Initialize static environmental for a garden */
 function createGardenScene(engine) {
   const scene = new Scene(engine)
-  const light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene)
-  const camera = createCamera("camera1", new Vector3(0, 5, -10), scene)
+  // const light = new HemisphericLight("light1", new Vector3(0, 1, 0), scene)
+  // const camera = createCamera("camera1", new Vector3(0, 5, -10), scene)
+  scene.createDefaultCameraOrLight(true, true, true)
   const skybox = createSkybox(scene, 'skybox')
   const ground = createGround(scene, 'ground')
 
-  // @ts-ignore
-  console.log('created ground', window.ground = ground)
-  return {scene, light, camera, skybox, ground}
+  return {scene, skybox, ground}
 }
 
 
@@ -86,6 +123,7 @@ function createGround(scene: Scene, name: string = 'grass.jpg'): Mesh {
     , subdivisions: GROUND_DEPTH }
 
   const ground = MeshBuilder.CreateGround(name, props, scene)
+  ground.position.y = -2
   const material = new StandardMaterial(name, scene)
   material.alpha = 0.5;
   const grass = new TEXTURES.Texture(`textures/${name}`, scene)
@@ -116,16 +154,20 @@ function createSkybox(scene, name = 'skybox'): Mesh {
 }
 
 
+/** Callback for Babylon to render a new frame */
 function render(environment: any) {
-    const { scene, light, camera, skybox, ground, sphere } = environment;
+    const { scene, light,  skybox, ground, sphere } = environment;
+
+    // Setup event handlers for user interactions
     const listen = e => {
-      moveMeshes( e.code, [sphere, camera] )
+      moveMeshes( e.code, [sphere] )
     }
 
     window.removeEventListener( 'keydown', listen )
     window.addEventListener( 'keydown', listen )
     scene.render()
 }
+
 
 interface MoveMeshes {
   ( keyCode: String, meshes: Mesh[] ): void
